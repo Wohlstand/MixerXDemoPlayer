@@ -1,0 +1,6 @@
+[submodule "3rdparty/AudioCodecs"]
+	path = 3rdparty/AudioCodecs
+	url = https://github.com/WohlSoft/AudioCodecs.git
+[submodule "3rdparty/SDL-Mixer-X"]
+	path = 3rdparty/SDL-Mixer-X
+	url = https://github.com/WohlSoft/SDL-Mixer-X.git
