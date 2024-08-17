@@ -169,9 +169,16 @@ void printMenu(int cursor)
     printLine("  A - play sel.   B - toggle FX [%s]     X - Stop", (fx_on ? "x" : " "));
     printLine("  Y - quit        L - RWops [%s]", (rwops_on ? "x" : " "));
 #else
+#   ifdef __3DS__
+    consoleClear();
+#   endif
     printf("\x1b[0;0H");
+    if(curMusicPrint[0] != 0)
+        printLine("-- Playing: %s\n", curMusicPrint);
+    else
+        printLine(" ");
     printLine("  A - play sel.   B - toggle FX [%s]     1 - Stop", (fx_on ? "x" : " "));
-    printLine("  HOME - quit");
+    printLine("  HOME - quit     L - RWops [%s]", (rwops_on ? "x" : " "));
 #endif
 
     if(m_recorg && m_spotyeah)
@@ -1229,10 +1236,10 @@ int main(int argc, char *argv[])
 #ifdef __WIIU__
                 SDL_Log("Couldn't load %s\n", curMusicPrint);
                 SDL_Log("%s\n", SDL_GetError());
-                waitForAnyKey();
 #else
                 SDL_Log("Couldn't load %s: %s\n", curMusicPrint, SDL_GetError());
 #endif
+                waitForAnyKey();
                 continue;
             }
 
