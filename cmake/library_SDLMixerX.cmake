@@ -206,6 +206,7 @@ set_static_lib(AC_VORBIS       "${CODECS_LIBRARIES_DIR}" vorbis)
 set_static_lib(AC_OPUSFILE     "${CODECS_LIBRARIES_DIR}" opusfile)
 set_static_lib(AC_OPUS         "${CODECS_LIBRARIES_DIR}" opus)
 set_static_lib(AC_OGG          "${CODECS_LIBRARIES_DIR}" ogg)
+set_static_lib(AC_MPG123       "${CODECS_LIBRARIES_DIR}" mpg123)
 set_static_lib(AC_WAVPACK      "${CODECS_LIBRARIES_DIR}" wavpack)
 set_static_lib(AC_ADLMIDI      "${CODECS_LIBRARIES_DIR}" ADLMIDI)
 set_static_lib(AC_OPNMIDI      "${CODECS_LIBRARIES_DIR}" OPNMIDI)
@@ -251,6 +252,7 @@ list(APPEND MixerX_CodecLibs
     "${AC_GME}"
     "${AC_LIBXMP}"
     "${AC_MODPLUG}"
+    "${AC_MPG123}"
 )
 
 if(VITA)
@@ -322,7 +324,7 @@ else()
     list(APPEND AUDIO_CODECS_BUILD_ARGS
         "-DBUILD_OGG_VORBIS=${MIXER_USE_OGG_VORBIS_TREMOR}"
         "-DBUILD_FLAC=OFF"
-        "-DBUILD_MPG123=OFF"
+        "-DBUILD_MPG123=ON"
         "-DBUILD_GME_SYSTEM_ZLIB=${USE_SYSTEM_ZLIB}"
         "-DBUILD_WAVPACK=${MIXERX_ENABLE_WAVPACK}"
     )
@@ -341,6 +343,7 @@ set(AUDIO_CODECS_BUILD_ARGS
 if(VITA OR NINTENDO_DS OR NINTENDO_3DS OR NINTENDO_WII OR NINTENDO_WIIU OR NINTENDO_SWITCH)
     list(APPEND AUDIO_CODECS_BUILD_ARGS
         -DENABLE_FPIC=OFF
+        -DCMAKE_POSITION_INDEPENDENT_CODE=OFF
     )
 endif()
 
@@ -427,8 +430,8 @@ if(NOT THEXTECH_NO_MIXER_X)
             "-DUSE_WAVPACK=${MIXERX_ENABLE_WAVPACK}"
             "-DUSE_OGG_VORBIS_STB=${MIXER_USE_OGG_VORBIS_STB}"
             "-DUSE_OGG_VORBIS_TREMOR=${MIXER_USE_OGG_VORBIS_TREMOR}"
-            "-DUSE_MP3_DRMP3=ON"
-            "-DUSE_MP3_MPG123=OFF"
+            "-DUSE_MP3_DRMP3=OFF"
+            "-DUSE_MP3_MPG123=ON"
             "-DUSE_SYSTEM_ZLIB=${USE_SYSTEM_ZLIB}"
             ${MIXERX_CMAKE_FLAGS}
             ${ANDROID_CMAKE_FLAGS}
