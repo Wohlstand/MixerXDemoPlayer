@@ -12,6 +12,8 @@ include(TestBigEndian)
 include(CheckIncludeFile)
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_EXTENSIONS ON)
 
 if(ANDROID)
     set(DEPENDENCIES_INSTALL_DIR ${CMAKE_BINARY_DIR}/output-deps)
@@ -78,6 +80,7 @@ add_dependencies(mixerx SDLMixerX_Local)
 if(NINTENDO_WII)
     ogc_create_dol(mixerx)
 elseif(NINTENDO_WIIU)
+    target_compile_definitions(mixerx PRIVATE "-D_GNU_SOURCE=1")
     wut_create_rpx(mixerx)
 elseif(NINTENDO_3DS)
     ctr_generate_smdh(OUTPUT "mixerx.smdh"

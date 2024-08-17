@@ -28,6 +28,7 @@
 #include <SDL2/SDL_stdinc.h>
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 
@@ -46,13 +47,24 @@
 #   include <coreinit/thread.h>
 #   include <coreinit/time.h>
 #   include <coreinit/systeminfo.h>
+#   include <coreinit/screen.h>
+#   include <coreinit/memfrmheap.h>
+#   include <coreinit/memory.h>
 #   include <vpad/input.h>
 #   include <nn/ac.h>
 #   include <whb/proc.h>
 #   include <whb/log.h>
 #   include <whb/log_console.h>
+#   include <proc_ui/procui.h>
+#   include <malloc.h>
 #   define MIXER_ROOT "fs:/vol/external01"
-#   define printf WHBLogPrintf
+#   define CONSOLE_FRAME_HEAP_TAG (0x000DECAF)
+// #   define printf WHBLogPrintf
+#   define printf console_printf
+static void console_printf(const char *format, ...);
+static void console_clear();
+static void console_redraw();
+int	vasprintf (char **, const char *, __VALIST) _ATTRIBUTE ((__format__ (__printf__, 2, 0)));
 #   define fflush(x)
 #elif defined(__3DS__)
 #   include <3ds.h>
@@ -157,8 +169,7 @@ void printMenu(int cursor)
 {
     int i;
 #if defined(__WIIU__)
-    for(i = 0; i < 16; ++i)
-        printf("\n");
+    console_clear();
 
     if(curMusicPrint[0] != 0)
     {
@@ -178,7 +189,11 @@ void printMenu(int cursor)
     else
         printLine(" ");
     printLine("  A - play sel.   B - toggle FX [%s]     1 - Stop", (fx_on ? "x" : " "));
+#   ifdef __3DS__
+    printLine("  Y - quit     L - RWops [%s]", (rwops_on ? "x" : " "));
+#   else
     printLine("  HOME - quit     L - RWops [%s]", (rwops_on ? "x" : " "));
+#   endif
 #endif
 
     if(m_recorg && m_spotyeah)
@@ -628,6 +643,7 @@ void playListMenu()
         }
 
         playmusVideoUpdate();
+        SDL_Delay(10);
     }
 }
 
@@ -779,6 +795,88 @@ static Uint32 getKey()
 
 #elif defined(__WIIU__)
 
+#define MAX_CONSOLE_LINES_TV    27
+#define MAX_CONSOLE_LINES_DRC   18
+
+static char *consoleArrayTv[MAX_CONSOLE_LINES_TV];
+static char *consoleArrayDrc[MAX_CONSOLE_LINES_DRC];
+static uint32_t sBufferSizeTV = 0, sBufferSizeDRC = 0;
+static SDL_bool sConsoleHasForeground = SDL_TRUE;
+static void *sBufferTV = NULL, *sBufferDRC = NULL;
+
+static void console_clear()
+{
+    for (int i = 1; i < MAX_CONSOLE_LINES_TV; i++)
+        if(consoleArrayTv[i])
+            consoleArrayTv[i][0] = '\0';
+
+    for (int i = 1; i < MAX_CONSOLE_LINES_DRC; i++)
+        if(consoleArrayDrc[i])
+            consoleArrayDrc[i][0] = '\0';
+}
+
+static void console_printf(const char *format, ...)
+{
+    char * tmp = NULL;
+
+    va_list va;
+    va_start(va, format);
+
+    if ((vasprintf(&tmp, format, va) >= 0) && tmp) {
+        if (consoleArrayTv[0])
+            free(consoleArrayTv[0]);
+
+        if (consoleArrayDrc[0])
+            free(consoleArrayDrc[0]);
+
+        for (int i = 1; i < MAX_CONSOLE_LINES_TV; i++)
+            consoleArrayTv[i - 1] = consoleArrayTv[i];
+
+        for (int i = 1; i < MAX_CONSOLE_LINES_DRC; i++)
+            consoleArrayDrc[i - 1] = consoleArrayDrc[i];
+
+        if (strlen(tmp) > 79)
+            tmp[79] = 0;
+
+        consoleArrayTv[MAX_CONSOLE_LINES_TV - 1] = (char*)malloc(strlen(tmp) + 1);
+        if (consoleArrayTv[MAX_CONSOLE_LINES_TV - 1])
+            strcpy(consoleArrayTv[MAX_CONSOLE_LINES_TV - 1], tmp);
+
+        consoleArrayDrc[MAX_CONSOLE_LINES_DRC-1] = (tmp);
+    }
+
+    va_end(va);
+}
+
+static void console_redraw()
+{
+    if (!sConsoleHasForeground) {
+        return;
+    }
+
+    // Clear screens
+    OSScreenClearBufferEx(SCREEN_TV, 0);
+    OSScreenClearBufferEx(SCREEN_DRC, 0);
+
+    for(int i = 0; i < MAX_CONSOLE_LINES_TV; i++)
+    {
+        if(consoleArrayTv[i])
+            OSScreenPutFontEx(0, 0, i, consoleArrayTv[i]);
+    }
+
+    for(int i = 0; i < MAX_CONSOLE_LINES_DRC; i++)
+    {
+        if(consoleArrayDrc[i])
+            OSScreenPutFontEx(1, 0, i, consoleArrayDrc[i]);
+    }
+
+    DCFlushRange(sBufferTV, sBufferSizeTV);
+    DCFlushRange(sBufferDRC, sBufferSizeDRC);
+    OSScreenFlipBuffersEx(SCREEN_TV);
+    OSScreenFlipBuffersEx(SCREEN_DRC);
+}
+
+
 static void wiiuLogFunction(void *userdata, int category, SDL_LogPriority priority, const char *message)
 {
     (void)userdata;
@@ -806,35 +904,90 @@ static void wiiuLogFunction(void *userdata, int category, SDL_LogPriority priori
         break;
     }
 
-    WHBLogConsoleDraw();
+    console_redraw();
+}
+
+static uint32_t ConsoleProcCallbackAcquired(void *context)
+{
+    MEMHeapHandle heap = MEMGetBaseHeapHandle(MEM_BASE_HEAP_MEM1);
+    MEMRecordStateForFrmHeap(heap, CONSOLE_FRAME_HEAP_TAG);
+
+    (void)context;
+
+    if (sBufferSizeTV) {
+        sBufferTV = MEMAllocFromFrmHeapEx(heap, sBufferSizeTV, 4);
+    }
+
+    if (sBufferSizeDRC) {
+        sBufferDRC = MEMAllocFromFrmHeapEx(heap, sBufferSizeDRC, 4);
+    }
+
+    sConsoleHasForeground = SDL_TRUE;
+    OSScreenSetBufferEx(SCREEN_TV, sBufferTV);
+    OSScreenSetBufferEx(SCREEN_DRC, sBufferDRC);
+    return 0;
+}
+
+static uint32_t ConsoleProcCallbackReleased(void *context)
+{
+    MEMHeapHandle heap = MEMGetBaseHeapHandle(MEM_BASE_HEAP_MEM1);
+    (void)context;
+
+    MEMFreeByStateToFrmHeap(heap, CONSOLE_FRAME_HEAP_TAG);
+    sConsoleHasForeground = SDL_FALSE;
+    return 0;
 }
 
 static void playmusVideoInit()
 {
     ACConfigId configId;
 
+    SDL_memset(consoleArrayTv, 0, sizeof(consoleArrayTv));
+    SDL_memset(consoleArrayDrc, 0, sizeof(consoleArrayDrc));
+
     ACInitialize();
     ACGetStartupId(&configId);
     ACConnect();
 
     WHBProcInit();
-    WHBLogConsoleInit();
+
+    // Init screen and screen buffers
+    OSScreenInit();
+    sBufferSizeTV = OSScreenGetBufferSizeEx(SCREEN_TV);
+    sBufferSizeDRC = OSScreenGetBufferSizeEx(SCREEN_DRC);
+
+    ConsoleProcCallbackAcquired(NULL);
+    OSScreenEnableEx(SCREEN_TV, 1);
+    OSScreenEnableEx(SCREEN_DRC, 1);
+
+    ProcUIRegisterCallback(PROCUI_CALLBACK_ACQUIRE, ConsoleProcCallbackAcquired, NULL, 100);
+    ProcUIRegisterCallback(PROCUI_CALLBACK_RELEASE, ConsoleProcCallbackReleased, NULL, 100);
+
+    OSScreenClearBufferEx(SCREEN_TV, 0);
+    OSScreenClearBufferEx(SCREEN_DRC, 0);
+    OSScreenFlipBuffersEx(SCREEN_TV);
+    OSScreenFlipBuffersEx(SCREEN_DRC);
 
     VPADInit();
 }
 
 static void playmusVideoUpdate()
 {
-    WHBLogConsoleDraw();
+    // WHBLogConsoleDraw();
+    console_redraw();
     WHBProcIsRunning();
 }
 
 static void playmusVideoQuit()
 {
     VPADShutdown();
-    WHBLogConsoleFree();
-    WHBProcShutdown();
 
+    if (sConsoleHasForeground) {
+        OSScreenShutdown();
+        ConsoleProcCallbackReleased(NULL);
+    }
+
+    WHBProcShutdown();
     ACFinalize();
 }
 
