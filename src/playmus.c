@@ -96,6 +96,23 @@ static SDL_bool rwops_on = SDL_FALSE;
 static Mix_Chunk *m_recorg = NULL;
 static Mix_Chunk *m_spotyeah = NULL;
 
+enum MixKey
+{
+    MIX_KEY_UP      = 0x01,
+    MIX_KEY_DOWN    = 0x02,
+    MIX_KEY_LEFT    = 0x04,
+    MIX_KEY_RIGHT   = 0x08,
+    MIX_KEY_PLAY_SND1   = 0x10,
+    MIX_KEY_PLAY_SND2   = 0x20,
+    MIX_KEY_STOP        = 0x40,
+    MIX_KEY_PLAY        = 0x80,
+    MIX_KEY_TOGGLE_ECHO = 0x100,
+    MIX_KEY_QUIT        = 0x200,
+    MIX_KEY_TOGGLE_TYPE = 0x400,
+};
+
+static Uint32 getKey();
+
 static void playmusVideoUpdate();
 static void playmusVideoInit();
 
@@ -286,6 +303,15 @@ void waitForHome()
     }
     printf("OK!\n");
 #endif
+}
+
+void waitForAnyKey()
+{
+    printLine("Press any key to continue...");
+    playmusVideoUpdate();
+
+    while(getKey() == 0)
+        SDL_Delay(10);
 }
 
 int ifHomePressed()
@@ -489,21 +515,6 @@ fir-7 = -1
     }
 }
 
-enum MixKey
-{
-    MIX_KEY_UP      = 0x01,
-    MIX_KEY_DOWN    = 0x02,
-    MIX_KEY_LEFT    = 0x04,
-    MIX_KEY_RIGHT   = 0x08,
-    MIX_KEY_PLAY_SND1   = 0x10,
-    MIX_KEY_PLAY_SND2   = 0x20,
-    MIX_KEY_STOP        = 0x40,
-    MIX_KEY_PLAY        = 0x80,
-    MIX_KEY_TOGGLE_ECHO = 0x100,
-    MIX_KEY_QUIT        = 0x200,
-    MIX_KEY_TOGGLE_TYPE = 0x400,
-};
-
 static Uint32 getKey()
 {
     Uint32 ret = 0;
@@ -684,17 +695,21 @@ void playListMenu()
             printf("Stopping...\n\n");
             doStop = 1;
             curMusicPrint[0] = 0;
+            playmusVideoUpdate();
             break;
         }
         else if(pressed & MIX_KEY_PLAY)
         {
             printf("\n\n");
             crLine();
+#if !defined(__WIIU__)
             printf("\33[J");
             fflush(stdout);
+#endif
             SDL_snprintf(curMusic, 255, MIXER_ROOT "/music/%s", musicList[cursor]);
             SDL_strlcpy(curMusicPrint, musicList[cursor], sizeof(curMusicPrint));
             printf("Selected song: %s\n\n", curMusic);
+            playmusVideoUpdate();
             break;
         }
         else if(pressed & MIX_KEY_TOGGLE_ECHO)
@@ -865,6 +880,8 @@ static void wiiuLogFunction(void *userdata, int category, SDL_LogPriority priori
         printf("LOG:%s\n", message);
         break;
     }
+
+    WHBLogConsoleDraw();
 }
 
 static void playmusVideoInit()
@@ -884,7 +901,6 @@ static void playmusVideoInit()
 static void playmusVideoUpdate()
 {
     WHBLogConsoleDraw();
-    OSSleepTicks(OSMillisecondsToTicks(16));
     WHBProcIsRunning();
 }
 
@@ -1112,6 +1128,7 @@ int main(int argc, char *argv[])
 
 #ifdef __WIIU__
             printf("Loading %s...", curMusicPrint);
+            playmusVideoUpdate();
 #endif
 
             if(rwops_on)
@@ -1121,8 +1138,14 @@ int main(int argc, char *argv[])
 
             if (new_music == NULL) {
                 printf("                                                                       \r");
-                SDL_Log("Couldn't load %s: %s\n", curMusic, SDL_GetError());
-                playmusVideoUpdate();
+
+#ifdef __WIIU__
+                SDL_Log("Couldn't load %s\n", curMusicPrint);
+                SDL_Log("%s\n", SDL_GetError());
+                waitForAnyKey();
+#else
+                SDL_Log("Couldn't load %s: %s\n", curMusicPrint, SDL_GetError());
+#endif
                 continue;
             }
 
