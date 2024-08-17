@@ -91,6 +91,7 @@ static int menuOffset = 0;
 const int menuLength = 7;
 static int doStop = 0;
 static int fx_on = 0;
+static SDL_bool rwops_on = SDL_FALSE;
 
 static Mix_Chunk *m_recorg = NULL;
 static Mix_Chunk *m_spotyeah = NULL;
@@ -146,7 +147,7 @@ void printMenu(int cursor)
     }
 
     printLine("  A - play sel.   B - toggle FX [%s]     X - Stop", (fx_on ? "x" : " "));
-    printLine("  Y - quit");
+    printLine("  Y - quit        L - RWops [%s]", (rwops_on ? "x" : " "));
 #else
     printf("\x1b[0;0H");
     printLine("  A - play sel.   B - toggle FX [%s]     1 - Stop", (fx_on ? "x" : " "));
@@ -500,6 +501,7 @@ enum MixKey
     MIX_KEY_PLAY        = 0x80,
     MIX_KEY_TOGGLE_ECHO = 0x100,
     MIX_KEY_QUIT        = 0x200,
+    MIX_KEY_TOGGLE_TYPE = 0x400,
 };
 
 static Uint32 getKey()
@@ -581,6 +583,9 @@ static Uint32 getKey()
     if(vpadStatus.trigger & VPAD_BUTTON_Y)
         ret |= MIX_KEY_QUIT;
 
+    if(vpadStatus.trigger & VPAD_BUTTON_L)
+        ret |= MIX_KEY_TOGGLE_TYPE;
+
 #else // Linux
 
     if(kbhit())
@@ -613,6 +618,9 @@ static Uint32 getKey()
 
         if(key == 'e')
             ret |= MIX_KEY_TOGGLE_ECHO;
+
+        if(key == 'r')
+            ret |= MIX_KEY_TOGGLE_TYPE;
 
         if(key == '\x1b')
             ret |= MIX_KEY_QUIT;
@@ -696,6 +704,11 @@ void playListMenu()
                 SoundFX_SetEcho();
             else
                 SoundFX_Clear();
+            printMenu(cur);
+        }
+        else if(pressed & MIX_KEY_TOGGLE_TYPE)
+        {
+            rwops_on = !rwops_on;
             printMenu(cur);
         }
         else if(pressed & MIX_KEY_QUIT)
@@ -1097,7 +1110,15 @@ int main(int argc, char *argv[])
                 continue;
             }
 
-            new_music = Mix_LoadMUS(curMusic);
+#ifdef __WIIU__
+            printf("Loading %s...", curMusicPrint);
+#endif
+
+            if(rwops_on)
+                new_music = Mix_LoadMUS_RW(SDL_RWFromFile(curMusic, "rb"), SDL_TRUE);
+            else
+                new_music = Mix_LoadMUS(curMusic);
+
             if (new_music == NULL) {
                 printf("                                                                       \r");
                 SDL_Log("Couldn't load %s: %s\n", curMusic, SDL_GetError());
