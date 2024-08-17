@@ -69,7 +69,7 @@ else()
     target_link_libraries(mixerx PRIVATE PGE_SDLMixerX_static PGE_ZLib)
 endif()
 
-if(NOT NINTENDO_WII AND NOT NINTENDO_WIIU)
+if(NOT NINTENDO_WII AND NOT NINTENDO_WIIU AND NOT NINTENDO_3DS)
     target_link_libraries(mixerx PRIVATE ncurses)
 endif()
 
@@ -79,4 +79,11 @@ if(NINTENDO_WII)
     ogc_create_dol(mixerx)
 elseif(NINTENDO_WIIU)
     wut_create_rpx(mixerx)
+elseif(NINTENDO_3DS)
+    ctr_generate_smdh(OUTPUT "mixerx.smdh"
+        NAME "MixerX Demo Player"
+        DESCRIPTION "Demo tool of MixerX library"
+        AUTHOR "Wohlstand"
+    )
+    ctr_create_3dsx(mixerx SMDH "mixerx.smdh")
 endif()

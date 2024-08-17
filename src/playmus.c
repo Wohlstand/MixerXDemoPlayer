@@ -54,10 +54,12 @@
 #   define MIXER_ROOT "fs:/vol/external01"
 #   define printf WHBLogPrintf
 #   define fflush(x)
+#elif defined(__3DS__)
+#   include <3ds.h>
+#   define MIXER_ROOT
 #else
 #   include <stdio.h>
 #   include <ncurses.h>
-static int kbhit(void);
 #   define MIXER_ROOT "/home/VMs2/Wii"
 #endif
 
@@ -115,6 +117,7 @@ static Uint32 getKey();
 
 static void playmusVideoUpdate();
 static void playmusVideoInit();
+static void playmusVideoQuit();
 
 int printLine(const char *fmt, ...)
 {
@@ -369,13 +372,7 @@ void CleanUp(int exitcode)
     SDL_Quit();
     playmusVideoUpdate();
 
-#if defined(__WIIU__)
-    VPADShutdown();
-    WHBLogConsoleFree();
-    WHBProcShutdown();
-
-    ACFinalize();
-#endif
+    playmusVideoQuit();
 
     exit(exitcode);
 }
@@ -513,132 +510,6 @@ fir-7 = -1
 
         enableEffectEcho = SDL_TRUE;
     }
-}
-
-static Uint32 getKey()
-{
-    Uint32 ret = 0;
-
-#if __wii__
-    u32 pressed;
-
-    // Call WPAD_ScanPads each loop, this reads the latest controller states
-    WPAD_ScanPads();
-
-    // WPAD_ButtonsDown tells us which buttons were pressed in this loop
-    // this is a "one shot" state which will not fire again until the button has been released
-    pressed = WPAD_ButtonsDown(0);
-
-    if(pressed & WPAD_BUTTON_UP)
-        ret |= MIX_KEY_UP;
-
-    if(pressed & WPAD_BUTTON_DOWN)
-        ret |= MIX_KEY_DOWN;
-
-    if(pressed & WPAD_BUTTON_LEFT)
-        ret |= MIX_KEY_LEFT;
-
-    if(pressed & WPAD_BUTTON_RIGHT)
-        ret |= MIX_KEY_RIGHT;
-
-    if(pressed & WPAD_BUTTON_MINUS)
-        ret |= MIX_KEY_PLAY_SND1;
-
-    if(pressed & WPAD_BUTTON_PLUS)
-        ret |= MIX_KEY_PLAY_SND2;
-
-    if(pressed & WPAD_BUTTON_1)
-        ret |= MIX_KEY_STOP;
-
-    if(pressed & WPAD_BUTTON_A)
-        ret |= MIX_KEY_PLAY;
-
-    if(pressed & WPAD_BUTTON_B)
-        ret |= MIX_KEY_TOGGLE_ECHO;
-
-    if(pressed & WPAD_BUTTON_HOME)
-        ret |= MIX_KEY_QUIT;
-
-#elif defined(__WIIU__)
-
-    VPADStatus vpadStatus;
-    VPADRead(VPAD_CHAN_0, &vpadStatus, 1, NULL);
-
-    if(vpadStatus.trigger & VPAD_BUTTON_UP)
-        ret |= MIX_KEY_UP;
-
-    if(vpadStatus.trigger & VPAD_BUTTON_DOWN)
-        ret |= MIX_KEY_DOWN;
-
-    if(vpadStatus.trigger & VPAD_BUTTON_LEFT)
-        ret |= MIX_KEY_LEFT;
-
-    if(vpadStatus.trigger & VPAD_BUTTON_RIGHT)
-        ret |= MIX_KEY_RIGHT;
-
-    if(vpadStatus.trigger & VPAD_BUTTON_MINUS)
-        ret |= MIX_KEY_PLAY_SND1;
-
-    if(vpadStatus.trigger & VPAD_BUTTON_PLUS)
-        ret |= MIX_KEY_PLAY_SND2;
-
-    if(vpadStatus.trigger & VPAD_BUTTON_X)
-        ret |= MIX_KEY_STOP;
-
-    if(vpadStatus.trigger & VPAD_BUTTON_A)
-        ret |= MIX_KEY_PLAY;
-
-    if(vpadStatus.trigger & VPAD_BUTTON_B)
-        ret |= MIX_KEY_TOGGLE_ECHO;
-
-    if(vpadStatus.trigger & VPAD_BUTTON_Y)
-        ret |= MIX_KEY_QUIT;
-
-    if(vpadStatus.trigger & VPAD_BUTTON_L)
-        ret |= MIX_KEY_TOGGLE_TYPE;
-
-#else // Linux
-
-    if(kbhit())
-    {
-        int key = getch();
-
-        if(key == KEY_UP)
-            ret |= MIX_KEY_UP;
-
-        if(key == KEY_DOWN)
-            ret |= MIX_KEY_DOWN;
-
-        if(key == KEY_LEFT)
-            ret |= MIX_KEY_LEFT;
-
-        if(key == KEY_RIGHT)
-            ret |= MIX_KEY_RIGHT;
-
-        if(key == '\n')
-            ret |= MIX_KEY_PLAY;
-
-        if(key == KEY_BACKSPACE)
-            ret |= MIX_KEY_STOP;
-
-        if(key == '1')
-            ret |= MIX_KEY_PLAY_SND1;
-
-        if(key == '2')
-            ret |= MIX_KEY_PLAY_SND2;
-
-        if(key == 'e')
-            ret |= MIX_KEY_TOGGLE_ECHO;
-
-        if(key == 'r')
-            ret |= MIX_KEY_TOGGLE_TYPE;
-
-        if(key == '\x1b')
-            ret |= MIX_KEY_QUIT;
-    }
-#endif
-
-    return ret;
 }
 
 void playListMenu()
@@ -852,6 +723,53 @@ static void playmusVideoUpdate()
     VIDEO_WaitVSync();
 }
 
+static void playmusVideoQuit()
+{}
+
+static Uint32 getKey()
+{
+    Uint32 ret = 0;
+    u32 pressed;
+    // Call WPAD_ScanPads each loop, this reads the latest controller states
+    WPAD_ScanPads();
+
+    // WPAD_ButtonsDown tells us which buttons were pressed in this loop
+    // this is a "one shot" state which will not fire again until the button has been released
+    pressed = WPAD_ButtonsDown(0);
+
+    if(pressed & WPAD_BUTTON_UP)
+        ret |= MIX_KEY_UP;
+
+    if(pressed & WPAD_BUTTON_DOWN)
+        ret |= MIX_KEY_DOWN;
+
+    if(pressed & WPAD_BUTTON_LEFT)
+        ret |= MIX_KEY_LEFT;
+
+    if(pressed & WPAD_BUTTON_RIGHT)
+        ret |= MIX_KEY_RIGHT;
+
+    if(pressed & WPAD_BUTTON_MINUS)
+        ret |= MIX_KEY_PLAY_SND1;
+
+    if(pressed & WPAD_BUTTON_PLUS)
+        ret |= MIX_KEY_PLAY_SND2;
+
+    if(pressed & WPAD_BUTTON_1)
+        ret |= MIX_KEY_STOP;
+
+    if(pressed & WPAD_BUTTON_A)
+        ret |= MIX_KEY_PLAY;
+
+    if(pressed & WPAD_BUTTON_B)
+        ret |= MIX_KEY_TOGGLE_ECHO;
+
+    if(pressed & WPAD_BUTTON_HOME)
+        ret |= MIX_KEY_QUIT;
+
+    return ret;
+}
+
 #elif defined(__WIIU__)
 
 static void wiiuLogFunction(void *userdata, int category, SDL_LogPriority priority, const char *message)
@@ -904,6 +822,127 @@ static void playmusVideoUpdate()
     WHBProcIsRunning();
 }
 
+static void playmusVideoQuit()
+{
+    VPADShutdown();
+    WHBLogConsoleFree();
+    WHBProcShutdown();
+
+    ACFinalize();
+}
+
+static Uint32 getKey()
+{
+    Uint32 ret = 0;
+    VPADStatus vpadStatus;
+
+    VPADRead(VPAD_CHAN_0, &vpadStatus, 1, NULL);
+
+    if(vpadStatus.trigger & VPAD_BUTTON_UP)
+        ret |= MIX_KEY_UP;
+
+    if(vpadStatus.trigger & VPAD_BUTTON_DOWN)
+        ret |= MIX_KEY_DOWN;
+
+    if(vpadStatus.trigger & VPAD_BUTTON_LEFT)
+        ret |= MIX_KEY_LEFT;
+
+    if(vpadStatus.trigger & VPAD_BUTTON_RIGHT)
+        ret |= MIX_KEY_RIGHT;
+
+    if(vpadStatus.trigger & VPAD_BUTTON_MINUS)
+        ret |= MIX_KEY_PLAY_SND1;
+
+    if(vpadStatus.trigger & VPAD_BUTTON_PLUS)
+        ret |= MIX_KEY_PLAY_SND2;
+
+    if(vpadStatus.trigger & VPAD_BUTTON_X)
+        ret |= MIX_KEY_STOP;
+
+    if(vpadStatus.trigger & VPAD_BUTTON_A)
+        ret |= MIX_KEY_PLAY;
+
+    if(vpadStatus.trigger & VPAD_BUTTON_B)
+        ret |= MIX_KEY_TOGGLE_ECHO;
+
+    if(vpadStatus.trigger & VPAD_BUTTON_L)
+        ret |= MIX_KEY_TOGGLE_TYPE;
+
+    if(vpadStatus.trigger & VPAD_BUTTON_Y)
+        ret |= MIX_KEY_QUIT;
+
+    return ret;
+}
+
+#elif defined(__3DS__)
+
+static void playmusVideoInit()
+{
+    // Initialize services
+    gfxInitDefault();
+    //Initialize console on top screen. Using NULL as the second argument tells the console library to use the internal console structure as current one
+    consoleInit(GFX_TOP, NULL);
+}
+
+static void playmusVideoUpdate()
+{
+    // Flush and swap framebuffers
+    gfxFlushBuffers();
+    gfxSwapBuffers();
+    //Wait for VBlank
+    gspWaitForVBlank();
+}
+
+static void playmusVideoQuit()
+{
+    gfxExit();
+}
+
+static Uint32 getKey()
+{
+    Uint32 ret = 0;
+    u32 pressed;
+
+    //Scan all the inputs. This should be done once for each frame
+    hidScanInput();
+    pressed = hidKeysDown();
+
+    if(pressed & KEY_DUP)
+        ret |= MIX_KEY_UP;
+
+    if(pressed & KEY_DDOWN)
+        ret |= MIX_KEY_DOWN;
+
+    if(pressed & KEY_LEFT)
+        ret |= MIX_KEY_LEFT;
+
+    if(pressed & KEY_RIGHT)
+        ret |= MIX_KEY_RIGHT;
+
+    if(pressed & KEY_SELECT)
+        ret |= MIX_KEY_PLAY_SND1;
+
+    if(pressed & KEY_START)
+        ret |= MIX_KEY_PLAY_SND2;
+
+    if(pressed & KEY_X)
+        ret |= MIX_KEY_STOP;
+
+    if(pressed & KEY_A)
+        ret |= MIX_KEY_PLAY;
+
+    if(pressed & KEY_B)
+        ret |= MIX_KEY_TOGGLE_ECHO;
+
+    if(pressed & KEY_L)
+        ret |= MIX_KEY_TOGGLE_TYPE;
+
+    if(pressed & KEY_Y)
+        ret |= MIX_KEY_QUIT;
+
+    return ret;
+}
+
 #else
 
 static int kbhit(void)
@@ -935,6 +974,54 @@ static void playmusVideoUpdate()
 {
     fflush(stdout);
     refresh();
+}
+
+static void playmusVideoQuit()
+{}
+
+static Uint32 getKey()
+{
+    Uint32 ret = 0;
+
+    if(kbhit())
+    {
+        int key = getch();
+
+        if(key == KEY_UP)
+            ret |= MIX_KEY_UP;
+
+        if(key == KEY_DOWN)
+            ret |= MIX_KEY_DOWN;
+
+        if(key == KEY_LEFT)
+            ret |= MIX_KEY_LEFT;
+
+        if(key == KEY_RIGHT)
+            ret |= MIX_KEY_RIGHT;
+
+        if(key == '\n')
+            ret |= MIX_KEY_PLAY;
+
+        if(key == KEY_BACKSPACE)
+            ret |= MIX_KEY_STOP;
+
+        if(key == '1')
+            ret |= MIX_KEY_PLAY_SND1;
+
+        if(key == '2')
+            ret |= MIX_KEY_PLAY_SND2;
+
+        if(key == 'e')
+            ret |= MIX_KEY_TOGGLE_ECHO;
+
+        if(key == 'r')
+            ret |= MIX_KEY_TOGGLE_TYPE;
+
+        if(key == '\x1b')
+            ret |= MIX_KEY_QUIT;
+    }
+
+    return ret;
 }
 #endif
 
