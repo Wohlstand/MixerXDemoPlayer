@@ -99,6 +99,7 @@ static const int musicListStrLenSize = 64;
 static char musicList[255][64];
 static char curMusic[255];
 static char curMusicPrint[255] = "";
+static char curMusicPrintNew[255] = "";
 static int musicListTotal = 0;
 static int menuCursor = 0;
 static int menuOffset = 0;
@@ -185,7 +186,7 @@ void printMenu(int cursor)
 #   endif
     printf("\x1b[0;0H");
     if(curMusicPrint[0] != 0)
-        printLine("-- Playing: %s\n", curMusicPrint);
+        printLine("-- Playing: %s", curMusicPrint);
     else
         printLine(" ");
     printLine("  A - play sel.   B - toggle FX [%s]     1 - Stop", (fx_on ? "x" : " "));
@@ -270,6 +271,7 @@ void listDir(const char* path)
 
     SDL_memset(curMusic, 0, sizeof(curMusic));
     SDL_memset(curMusicPrint, 0, sizeof(curMusicPrint));
+    SDL_memset(curMusicPrintNew, 0, sizeof(curMusicPrintNew));
     SDL_memset(musicList, 0, sizeof(musicList));
     musicListTotal = 0;
 
@@ -588,6 +590,7 @@ void playListMenu()
             printf("Stopping...\n\n");
             doStop = 1;
             curMusicPrint[0] = 0;
+            curMusicPrintNew[0] = 0;
             playmusVideoUpdate();
             break;
         }
@@ -600,7 +603,7 @@ void playListMenu()
             fflush(stdout);
 #endif
             SDL_snprintf(curMusic, 255, MIXER_ROOT "/music/%s", musicList[cursor]);
-            SDL_strlcpy(curMusicPrint, musicList[cursor], sizeof(curMusicPrint));
+            SDL_strlcpy(curMusicPrintNew, musicList[cursor], sizeof(curMusicPrintNew));
             printf("Selected song: %s\n\n", curMusic);
             playmusVideoUpdate();
             break;
@@ -629,7 +632,7 @@ void playListMenu()
             printf("\33[J");
             fflush(stdout);
 #endif
-            printf("Quitting...\n\n");
+            printf("Quitting...\r\n\n");
 
             playmusVideoUpdate();
 
@@ -1105,6 +1108,37 @@ static Uint32 getKey()
 
 #else
 
+static void unixLogFunction(void *userdata, int category, SDL_LogPriority priority, const char *message)
+{
+    (void)userdata;
+    (void)category;
+
+    switch(priority)
+    {
+    case SDL_LOG_PRIORITY_DEBUG:
+        printf("DEBUG: %s\r\n", message);
+        break;
+    case SDL_LOG_PRIORITY_INFO:
+        printf("INFO: %s\r\n", message);
+        break;
+    case SDL_LOG_PRIORITY_WARN:
+        printf("WARN: %s\r\n", message);
+        break;
+    case SDL_LOG_PRIORITY_ERROR:
+        printf("ERR: %s\r\n", message);
+        break;
+    case SDL_LOG_PRIORITY_CRITICAL:
+        printf("CRIT: %s\r\n", message);
+        break;
+    default:
+        printf("LOG:%s\r\n", message);
+        break;
+    }
+
+    fflush(stdout);
+    refresh();
+}
+
 static int kbhit(void)
 {
     int ch = getch();
@@ -1291,8 +1325,10 @@ int main(int argc, char *argv[])
         return(255);
     }
 
-#ifdef __WIIU__
+#if defined(__WIIU__)
     SDL_LogSetOutputFunction(&wiiuLogFunction, NULL);
+#elif defined(__unix__)
+    SDL_LogSetOutputFunction(&unixLogFunction, NULL);
 #endif
 
 #ifdef HAVE_SIGNAL_H
@@ -1374,7 +1410,7 @@ int main(int argc, char *argv[])
             }
 
 #ifdef __WIIU__
-            printf("Loading %s...", curMusicPrint);
+            printf("Loading %s...", curMusicPrintNew);
             playmusVideoUpdate();
 #endif
 
@@ -1387,16 +1423,19 @@ int main(int argc, char *argv[])
                 printf("                                                                       \r");
 
 #ifdef __WIIU__
-                SDL_Log("Couldn't load %s\n", curMusicPrint);
+                SDL_Log("Couldn't load %s\n", curMusicPrintNew);
                 SDL_Log("%s\n", SDL_GetError());
 #else
-                SDL_Log("Couldn't load %s: %s\n", curMusicPrint, SDL_GetError());
+                SDL_Log("Couldn't load %s: %s\n", curMusicPrintNew, SDL_GetError());
 #endif
+                if(!music)
+                    curMusicPrint[0] = '\0';
                 waitForAnyKey();
                 continue;
             }
 
             music = new_music;
+            SDL_memcpy(curMusicPrint, curMusicPrintNew, sizeof(curMusicPrint));
 
             switch (Mix_GetMusicType(music)) {
             case MUS_CMD:
