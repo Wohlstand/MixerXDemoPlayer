@@ -69,6 +69,9 @@ int	vasprintf (char **, const char *, __VALIST) _ATTRIBUTE ((__format__ (__print
 #elif defined(__3DS__)
 #   include <3ds.h>
 #   define MIXER_ROOT
+#elif defined(__SWITCH__)
+#   include <switch.h>
+#   define MIXER_ROOT "sdmc:"
 #else
 #   include <stdio.h>
 #   include <ncurses.h>
@@ -1104,6 +1107,71 @@ static Uint32 getKey()
         ret |= MIX_KEY_QUIT;
 
     return ret;
+}
+
+#elif defined(__SWITCH__)
+
+static PadState pad;
+
+static Uint32 getKey()
+{
+    Uint32 ret = 0;
+    u64 pressed;
+
+    padUpdate(&pad);
+    pressed = padGetButtonsDown(&pad);
+
+    if(pressed & HidNpadButton_Up)
+        ret |= MIX_KEY_UP;
+
+    if(pressed & HidNpadButton_Down)
+        ret |= MIX_KEY_DOWN;
+
+    if(pressed & HidNpadButton_Left)
+        ret |= MIX_KEY_LEFT;
+
+    if(pressed & HidNpadButton_Right)
+        ret |= MIX_KEY_RIGHT;
+
+    if(pressed & HidNpadButton_Minus)
+        ret |= MIX_KEY_PLAY_SND1;
+
+    if(pressed & HidNpadButton_Plus)
+        ret |= MIX_KEY_PLAY_SND2;
+
+    if(pressed & HidNpadButton_X)
+        ret |= MIX_KEY_STOP;
+
+    if(pressed & HidNpadButton_A)
+        ret |= MIX_KEY_PLAY;
+
+    if(pressed & HidNpadButton_B)
+        ret |= MIX_KEY_TOGGLE_ECHO;
+
+    if(pressed & HidNpadButton_L)
+        ret |= MIX_KEY_TOGGLE_TYPE;
+
+    if(pressed & HidNpadButton_Y)
+        ret |= MIX_KEY_QUIT;
+
+    return ret;
+}
+
+static void playmusVideoUpdate()
+{
+    consoleUpdate(NULL);
+}
+
+static void playmusVideoInit()
+{
+    consoleInit(NULL);
+    padConfigureInput(1, HidNpadStyleSet_NpadStandard);
+    padInitializeDefault(&pad);
+}
+
+static void playmusVideoQuit()
+{
+    consoleExit(NULL);
 }
 
 #else

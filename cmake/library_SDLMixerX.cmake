@@ -21,7 +21,7 @@ else()
     set(PGE_SHARED_SDLMIXER OFF)
 endif()
 
-option(MIXERX_ENABLE_WAVPACK "Enable the WavPack codec support [Support is experimental, doesn't builds on some platforms]" OFF)
+option(MIXERX_ENABLE_WAVPACK "Enable the WavPack codec support [Support is experimental, doesn't builds on some platforms]" ON)
 
 if(NOT VITA AND NOT NINTENDO_WII AND NOT NINTENDO_WIIU AND NOT XTECH_MACOSX_TIGER)
     option(PGE_USE_LOCAL_SDL2 "Do use the locally-built SDL2 library from the AudioCodecs set. Otherwise, download and build the development top main version." ON)
@@ -64,6 +64,8 @@ set_static_lib(SDL2_A_Lib "${DEPENDENCIES_INSTALL_DIR}/lib" SDL2${LIBRARY_STATIC
 
 set(CODECS_LIBRARIES_DIR ${DEPENDENCIES_INSTALL_DIR}/lib)
 
+set(MIXERX_INCLUDE_DIRS "${DEPENDENCIES_INSTALL_DIR}/include/" "${DEPENDENCIES_INSTALL_DIR}/include/SDL2")
+
 if(USE_SYSTEM_SDL2)
     set(USE_LOCAL_SDL2 OFF)
     if(HAIKU)
@@ -72,7 +74,6 @@ if(USE_SYSTEM_SDL2)
         if(NOT SDL2_LIBRARY AND NOT SDL2_INCLUDE_DIR)
             message(FATAL_ERROR "The SDL2 Library was not found!")
         endif()
-        set(SDL2_INCLUDE_DIRS ${SDL2_INCLUDE_DIR})
         set(SDL2_LIBRARIES ${SDL2_LIBRARY})
     else()
         find_package(SDL2 REQUIRED)
@@ -449,6 +450,9 @@ if(NOT THEXTECH_NO_MIXER_X)
     target_link_libraries(PGE_SDLMixerX INTERFACE "${SDL_MixerX_SO_Lib}")
     target_link_libraries(PGE_SDLMixerX_static INTERFACE "${SDL_MixerX_A_Lib}")
 endif()
+
+target_include_directories(PGE_SDLMixerX INTERFACE ${MIXERX_INCLUDE_DIRS})
+target_include_directories(PGE_SDLMixerX_static INTERFACE ${MIXERX_INCLUDE_DIRS})
 
 if(USE_SYSTEM_SDL2)
     target_link_libraries(PGE_SDLMixerX INTERFACE ${SDL2_LIBRARIES})

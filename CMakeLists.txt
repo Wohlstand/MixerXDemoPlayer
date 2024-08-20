@@ -71,7 +71,7 @@ else()
     target_link_libraries(mixerx PRIVATE PGE_SDLMixerX_static PGE_ZLib)
 endif()
 
-if(NOT NINTENDO_WII AND NOT NINTENDO_WIIU AND NOT NINTENDO_3DS)
+if(NOT NINTENDO_WII AND NOT NINTENDO_WIIU AND NOT NINTENDO_3DS AND NOT NINTENDO_SWITCH)
     target_link_libraries(mixerx PRIVATE ncurses)
 endif()
 
@@ -89,4 +89,13 @@ elseif(NINTENDO_3DS)
         AUTHOR "Wohlstand"
     )
     ctr_create_3dsx(mixerx SMDH "mixerx.smdh")
+elseif(NINTENDO_SWITCH)
+    find_program(ELF2NRO elf2nro REQUIRED)
+    message("-- elf2nro found: ${ELF2NRO}")
+    add_custom_target(thextech_nro ALL
+        "${ELF2NRO}"
+        "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/mixerx.elf"
+        "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/mixerx.nro"
+        DEPENDS mixerx
+    )
 endif()
