@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<app version="1">
+    <name>MixerX Player</name>
+    <coder>Wohlstand</coder>
+    <version>@MIXERX_VERSION_STRING@</version>
+    <release_date>@MIXERX_WIIMETA_RELEASE_DATE@</release_date>
+    <short_description>@MIXERX_WIIMETA_SHORT_DESC@</short_description>
+    <long_description><![CDATA[A simple music player based on the SDL Mixer X library
+
+The small demo app to use MixerX on Wii
+
+https://github.com/WohlSoft/SDL-Mixer-X
+Source code for this player:
+https://github.com/Wohlstand/MixerXDemoPlayer]]></long_description>
+</app>
