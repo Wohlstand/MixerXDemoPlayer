@@ -253,7 +253,7 @@ list(APPEND MixerX_CodecLibs
     "${AC_GME}"
     "${AC_LIBXMP}"
     "${AC_MODPLUG}"
-    "${AC_MPG123}"
+    #"${AC_MPG123}"
 )
 
 if(VITA)
@@ -325,7 +325,7 @@ else()
     list(APPEND AUDIO_CODECS_BUILD_ARGS
         "-DBUILD_OGG_VORBIS=${MIXER_USE_OGG_VORBIS_TREMOR}"
         "-DBUILD_FLAC=OFF"
-        "-DBUILD_MPG123=ON"
+        "-DBUILD_MPG123=OFF"
         "-DBUILD_GME_SYSTEM_ZLIB=${USE_SYSTEM_ZLIB}"
         "-DBUILD_WAVPACK=${MIXERX_ENABLE_WAVPACK}"
     )
@@ -431,8 +431,8 @@ if(NOT THEXTECH_NO_MIXER_X)
             "-DUSE_WAVPACK=${MIXERX_ENABLE_WAVPACK}"
             "-DUSE_OGG_VORBIS_STB=${MIXER_USE_OGG_VORBIS_STB}"
             "-DUSE_OGG_VORBIS_TREMOR=${MIXER_USE_OGG_VORBIS_TREMOR}"
-            "-DUSE_MP3_DRMP3=OFF"
-            "-DUSE_MP3_MPG123=ON"
+            "-DUSE_MP3_DRMP3=ON"
+            "-DUSE_MP3_MPG123=OFF"
             "-DUSE_SYSTEM_ZLIB=${USE_SYSTEM_ZLIB}"
             ${MIXERX_CMAKE_FLAGS}
             ${ANDROID_CMAKE_FLAGS}
