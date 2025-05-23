@@ -22,7 +22,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#if defined(__3DS__) || defined(__SWITCH__) || defined(__WII__) || defined(__WIIU__) || defined(VITA)
+#if defined(__3DS__) || defined(__SWITCH__) || defined(__WII__) || defined(__WIIU__)
 #define INTEGER_ONLY_ECHO
 #endif
 
@@ -136,6 +136,11 @@ typedef struct SpcEcho
     int8_t reg_fir[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     int8_t reg_fir_resampled[8];
 
+    // Runtime buffers
+    spc_sample_t main_out[MAX_CHANNELS];
+    spc_sample_t echo_out[MAX_CHANNELS];
+    spc_sample_t echo_in[MAX_CHANNELS];
+
     void recomputeFirResampled()
     {
         const double y_factor1 = 1.0;
@@ -184,6 +189,11 @@ typedef struct SpcEcho
         channels = i_channels;
         rate_factor = (double)i_rate / SDSP_RATE;
 
+#ifdef INTEGER_ONLY_ECHO
+        if (i_format != AUDIO_S16LSB && i_format != AUDIO_S16MSB)
+            return -1; /* Disallowed format */
+#endif
+
         if(rate_factor > 50.0)
             return -1; /* Too big scale factor */
 
@@ -209,10 +219,10 @@ typedef struct SpcEcho
     void process(uint8_t *stream, int len)
     {
         int frames = len / (sample_size * channels);
-
-        spc_sample_t main_out[MAX_CHANNELS];
-        spc_sample_t echo_out[MAX_CHANNELS];
-        spc_sample_t echo_in[MAX_CHANNELS];
+#ifdef INTEGER_ONLY_ECHO
+        int16_t *s_in = (int16_t*)stream;
+        int16_t *s_out = (int16_t*)stream;
+#endif
 
         int c;
         spc_sample_t ov;
@@ -235,8 +245,13 @@ typedef struct SpcEcho
 
         do
         {
+#ifdef INTEGER_ONLY_ECHO
+            for(c = 0; c < channels; ++c)
+                main_out[c] = *(s_in++) * 128;
+#else
             for(c = 0; c < channels; ++c)
                 main_out[c] = readSample(stream, c) * 128;
+#endif
 
             if(reg_eon & 1)
             {
@@ -303,7 +318,12 @@ typedef struct SpcEcho
                 CLAMP16F(ov);
                 if((reg_flg & 0x40))
                     ov = 0;
+
+#ifdef INTEGER_ONLY_ECHO
+                *(s_out++) = ov;
+#else
                 writeSample(&stream, ov);
+#endif
             }
         }
         while(--frames);
