@@ -129,11 +129,11 @@ enum MixKey
     MIX_KEY_TOGGLE_TYPE = 0x400,
 };
 
-static Uint32 getKey();
+static Uint32 getKey(void);
 
-static void playmusVideoUpdate();
-static void playmusVideoInit();
-static void playmusVideoQuit();
+static void playmusVideoUpdate(void);
+static void playmusVideoInit(void);
+static void playmusVideoQuit(void);
 
 int printLine(const char *fmt, ...)
 {
@@ -156,7 +156,7 @@ int printLine(const char *fmt, ...)
     return len;
 }
 
-void crLine()
+void crLine(void)
 {
 #if !defined(__WIIU__)
     int i;
@@ -313,7 +313,7 @@ void listDir(const char* path)
     closedir(srcdir);
 }
 
-void waitForHome()
+void waitForHome(void)
 {
 #ifdef __wii__
     printf("Press HOME to continue...");
@@ -335,7 +335,7 @@ void waitForHome()
 #endif
 }
 
-void waitForAnyKey()
+void waitForAnyKey(void)
 {
     printLine("Press any key to continue...");
     playmusVideoUpdate();
@@ -344,7 +344,7 @@ void waitForAnyKey()
         SDL_Delay(10);
 }
 
-int ifHomePressed()
+int ifHomePressed(void)
 {
 #ifdef __wii__
     // Call WPAD_ScanPads each loop, this reads the latest controller states
@@ -410,7 +410,7 @@ void Usage(char *argv0)
 }
 
 
-void loadChunks()
+void loadChunks(void)
 {
     // 8-bit VOCs
 //    m_recorg = Mix_LoadWAV(MIXER_ROOT "/music/sfx/RECORG.VOC");
@@ -440,7 +440,7 @@ void loadChunks()
         SDL_Delay(2000);
 }
 
-void closeChunks()
+void closeChunks(void)
 {
     Mix_FreeChunk(m_recorg);
     m_recorg = NULL;
@@ -466,7 +466,7 @@ static void echoEffectDone(int x, void *context)
     }
 }
 
-void SoundFX_Clear()
+void SoundFX_Clear(void)
 {
     if(effectEcho)
     {
@@ -480,7 +480,7 @@ void SoundFX_Clear()
     }
 }
 
-void SoundFX_SetEcho()
+void SoundFX_SetEcho(void)
 {
     SDL_bool isNew = SDL_FALSE;
 
@@ -539,7 +539,7 @@ fir-7 = -1
     }
 }
 
-void playListMenu()
+void playListMenu(void)
 {
     int cur = -1;
     int cursor = menuCursor;
@@ -1419,6 +1419,17 @@ int main(int argc, char *argv[])
             audio_buffers);
     }
     audio_open = 1;
+
+#if 1//def __3DS__
+    Mix_SetMidiPlayer(MIDI_Fluidsynth);
+    Mix_SetSoundFonts(MIXER_ROOT "/music/sf2/SNES-2.sf2");
+    Mix_ADLMIDI_setMaxChipsCount(1);
+    Mix_ADLMIDI_setEmulator(OPNMIDI_OPN2_EMU_GENS);
+    Mix_ADLMIDI_setLowQualityMode(1);
+    Mix_OPNMIDI_setMaxChipsCount(1);
+    Mix_OPNMIDI_setEmulator(OPNMIDI_OPN2_EMU_GENS);
+    Mix_OPNMIDI_setLowQualityMode(1);
+#endif
 
 #ifdef SUPER_DEBUG
     SDL_Log("NEXT: Mix_VolumeMusic\n");
