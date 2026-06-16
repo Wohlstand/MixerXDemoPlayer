@@ -192,11 +192,12 @@ void printMenu(int cursor)
         printLine("-- Playing: %s", curMusicPrint);
     else
         printLine(" ");
-    printLine("  A - play sel.   B - toggle FX [%s]     1 - Stop", (fx_on ? "x" : " "));
 #   ifdef __3DS__
+    printLine("  A - play sel.   B - toggle FX [%s]     X - Stop", (fx_on ? "x" : " "));
     printLine("  Y - quit     L - RWops [%s]", (rwops_on ? "x" : " "));
 #   else
-    printLine("  HOME - quit     L - RWops [%s]", (rwops_on ? "x" : " "));
+    printLine("  A - play sel.   B - toggle FX [%s]     1 - Stop", (fx_on ? "x" : " "));
+    printLine("  HOME - quit     2 - RWops [%s]", (rwops_on ? "x" : " "));
 #   endif
 #endif
 
@@ -428,16 +429,18 @@ void loadChunks(void)
     if(!m_recorg)
         SDL_Log("Couldn't load m_recorg: %s\n", Mix_GetError());
 
-    m_spotyeah = Mix_LoadWAV(MIXER_ROOT "/music/sfx/sndOnline.wav");
+//    m_spotyeah = Mix_LoadWAV(MIXER_ROOT "/music/sfx/sndOnline.wav");
 //    m_spotyeah = Mix_LoadWAV(MIXER_ROOT "/music/sfx/sndOnline.aiff");
 //    m_spotyeah = Mix_LoadWAV(MIXER_ROOT "/music/sfx/S_Whistle.ogg");
 //    m_spotyeah = Mix_LoadWAV(MIXER_ROOT "/music/sfx/GLASS.WAV");
+//    m_spotyeah = Mix_LoadWAV(MIXER_ROOT "/music/sfx/slide.xqoa");
+    m_spotyeah = Mix_LoadWAV_RW(SDL_RWFromFile(MIXER_ROOT "/music/sfx/slide.xqoa", "rb"), SDL_TRUE);
     if(!m_spotyeah)
         SDL_Log("Couldn't load m_spotyeah: %s\n", Mix_GetError());
 
     playmusVideoUpdate();
     if(!m_recorg || !m_spotyeah)
-        SDL_Delay(2000);
+        SDL_Delay(5000);
 }
 
 void closeChunks(void)
@@ -699,7 +702,7 @@ void IntHandler(int sig)
 static void* xfb = NULL;
 static GXRModeObj* rmode = NULL;
 
-static void playmusVideoInit()
+static void playmusVideoInit(void)
 {
     // Initialise the video system
     VIDEO_Init();
@@ -747,15 +750,15 @@ static void playmusVideoInit()
     }
 }
 
-static void playmusVideoUpdate()
+static void playmusVideoUpdate(void)
 {
     VIDEO_WaitVSync();
 }
 
-static void playmusVideoQuit()
+static void playmusVideoQuit(void)
 {}
 
-static Uint32 getKey()
+static Uint32 getKey(void)
 {
     Uint32 ret = 0;
     u32 pressed;
@@ -786,6 +789,9 @@ static Uint32 getKey()
 
     if(pressed & WPAD_BUTTON_1)
         ret |= MIX_KEY_STOP;
+
+    if(pressed & WPAD_BUTTON_2)
+        ret |= MIX_KEY_TOGGLE_TYPE;
 
     if(pressed & WPAD_BUTTON_A)
         ret |= MIX_KEY_PLAY;
